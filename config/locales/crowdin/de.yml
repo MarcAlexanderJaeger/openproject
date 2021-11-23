@@ -692,7 +692,7 @@ de:
         role:
           attributes:
             permissions:
-              dependency_missing: "muss auch '%{dependency}' als '%{permission}' ausgewählt werden."
+              dependency_missing: "muss auch '%{dependency}' enthalten, da '%{permission}' ausgewählt ist."
         time_entry:
           attributes:
             hours:
@@ -1612,6 +1612,10 @@ de:
   label_member_plural: "Mitglieder"
   lable_membership_added: 'Mitglied hinzugefügt'
   lable_membership_updated: 'Mitglied aktualisiert'
+  label_menu_badge:
+    pre_alpha: 'pre-alpha'
+    alpha: 'alpha'
+    beta: 'beta'
   label_menu_item_name: "Name des Menüpunktes"
   label_message: "Nachricht"
   label_message_last: "Letzter Forenbeitrag"
