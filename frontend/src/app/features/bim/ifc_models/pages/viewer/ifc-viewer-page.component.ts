@@ -140,8 +140,8 @@ export class IFCViewerPageComponent extends PartitionedQuerySpacePageComponent i
   /**
    * Initialize the BimViewService when the component is refreshed
    */
-  public refresh(visibly = false, firstPage = false):Promise<QueryResource> {
-    return super.refresh(visibly, firstPage)
+  public loadQuery(firstPage = false):Promise<QueryResource> {
+    return super.loadQuery(firstPage)
       .then((query) => {
         this.bimView.initialize(query, query.results);
         return query;
