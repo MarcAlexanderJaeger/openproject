@@ -124,10 +124,9 @@ export class IFCViewerPageComponent extends PartitionedQuerySpacePageComponent i
     this.querySpace.query.values$()
       .subscribe((query) => {
         const dr = query.displayRepresentation || bimSplitViewCardsIdentifier;
-        if (BimViewService.isBimViewState(dr) && this.bimView.currentViewerState() !== dr) {
-          this.currentPartition = IFCViewerPageComponent.derivePartition(<BimViewState>dr);
-          this.filterAllowed = dr !== bimViewerViewIdentifier;
-        }
+        this.currentPartition = IFCViewerPageComponent.derivePartition(<BimViewState>dr);
+        this.filterAllowed = dr !== bimViewerViewIdentifier;
+        this.cdRef.detectChanges();
       });
 
 
