@@ -8,19 +8,20 @@ import { DragAndDropService } from 'core-app/shared/helpers/drag-and-drop/drag-a
 import { CausedUpdatesService } from 'core-app/features/boards/board/caused-updates/caused-updates.service';
 import {
   bimSplitViewCardsIdentifier,
-  bimSplitViewListIdentifier,
+  bimSplitViewTableIdentifier,
+  bimTableViewIdentifier,
   BimViewService,
 } from 'core-app/features/bim/ifc_models/pages/viewer/bim-view.service';
 import { InjectField } from 'core-app/shared/helpers/angular/inject-field.decorator';
 import { IfcModelsDataService } from 'core-app/features/bim/ifc_models/pages/viewer/ifc-models-data.service';
 import { WorkPackageViewColumnsService } from 'core-app/features/work-packages/routing/wp-view-base/view-services/wp-view-columns.service';
 import { UIRouterGlobals } from '@uirouter/core';
-import { distinctUntilChanged, pluck } from 'rxjs/operators';
+import { map } from 'rxjs/operators';
 import { States } from 'core-app/core/states/states.service';
 import { BcfApiService } from 'core-app/features/bim/bcf/api/bcf-api.service';
 import { splitViewRoute } from 'core-app/features/work-packages/routing/split-view-routes.helper';
 import { ViewerBridgeService } from 'core-app/features/bim/bcf/bcf-viewer-bridge/viewer-bridge.service';
-import { QueryResource } from 'core-app/features/hal/resources/query-resource';
+import { Observable } from 'rxjs';
 
 @Component({
   templateUrl: './bcf-list-container.component.html',
@@ -55,54 +56,34 @@ export class BcfListContainerComponent extends WorkPackageListViewComponent impl
 
   public showViewPointInFlight:boolean;
 
-  ngOnInit() {
+  public showTable$:Observable<boolean>;
+
+  ngOnInit():void {
     super.ngOnInit();
 
-    // Ensure we add a bcf thumbnail column
-    // until we can load the initial query
-    this.wpTableColumns
-      .onReady()
-      .then(() => this.wpTableColumns.addColumn('bcfThumbnail', 2));
-
-    this.uIRouterGlobals
-      .params$!
+    this.showTable$ = this.bimView.live$()
       .pipe(
-        this.untilDestroyed(),
-        pluck('cards'),
-        distinctUntilChanged(),
-      )
-      .subscribe((cards:boolean) => {
-        if (cards == null || cards || this.deviceService.isMobile) {
-          this.showTableView = false;
-        } else {
-          this.showTableView = true;
-        }
-
-        this.cdRef.detectChanges();
-      });
-  }
-
-  protected updateViewRepresentation(query:QueryResource) {
-    // Overwrite the parent method because we are setting the view
-    // above through the cards parameter (showTableView)
+        map((value) => value === bimTableViewIdentifier || value === bimSplitViewTableIdentifier),
+      );
   }
 
   public showResizerInCardView():boolean {
     if (this.noResults && this.ifcModelsService.models.length === 0) {
       return false;
     }
+
     return this.bimView.currentViewerState() === bimSplitViewCardsIdentifier
-             || this.bimView.currentViewerState() === bimSplitViewListIdentifier;
+      || this.bimView.currentViewerState() === bimSplitViewTableIdentifier;
   }
 
-  handleWorkPackageClicked(event:{ workPackageId:string; double:boolean }) {
+  handleWorkPackageClicked(event:{ workPackageId:string; double:boolean }):void {
     const { workPackageId, double } = event;
 
     if (!this.showViewPointInFlight) {
       this.showViewPointInFlight = true;
 
       this.zone.runOutsideAngular(() => {
-        setTimeout(() => this.showViewPointInFlight = false, 500);
+        setTimeout(() => { this.showViewPointInFlight = false; }, 500);
       });
 
       const wp = this.states.workPackages.get(workPackageId).value;
@@ -117,11 +98,11 @@ export class BcfListContainerComponent extends WorkPackageListViewComponent impl
     }
   }
 
-  openStateLink(event:{ workPackageId:string; requestedState:string }) {
+  openStateLink(event:{ workPackageId:string; requestedState:string }):void {
     this.goToWpDetailState(event.workPackageId, this.uIRouterGlobals.params.cards, true);
   }
 
-  goToWpDetailState(workPackageId:string, cards:boolean, focus?:boolean) {
+  goToWpDetailState(workPackageId:string, cards:boolean, focus?:boolean):void {
     // Show the split view when there is a viewer (browser)
     // Show only wp details when there is no viewer, plugin environment (ie: Revit)
     const stateToGo = this.viewer.shouldShowViewer
@@ -131,6 +112,6 @@ export class BcfListContainerComponent extends WorkPackageListViewComponent impl
     // it when going to 'bim.partitioned.show'
     const params = { workPackageId, cards, focus };
 
-    this.$state.go(stateToGo, params);
+    void this.$state.go(stateToGo, params);
   }
 }

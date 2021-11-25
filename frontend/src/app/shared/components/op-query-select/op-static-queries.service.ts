@@ -109,7 +109,7 @@ export class StaticQueriesService {
         uiSref: module,
         uiParams: {
           query_id: '',
-          query_props: '{"c":["id","subject","type","status","assignee","createdAt"],"hi":false,"g":"","t":"createdAt:desc","f":[{"n":"status","o":"o","v":[]}]}',
+          query_props: '{"c":["id","subject","type","status","assignee","createdAt"],"hi":false,"g":"","t":"createdAt:desc","f":[{"n":"status","o":"o","v":[]}],"dr":"table"}',
         },
       },
     ];

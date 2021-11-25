@@ -26,87 +26,77 @@
 // See COPYRIGHT and LICENSE files for more details.
 //++
 
-import { Injectable, OnDestroy } from '@angular/core';
+import { Injectable } from '@angular/core';
 import { I18nService } from 'core-app/core/i18n/i18n.service';
-import { Observable } from 'rxjs';
-import { StateService, TransitionService } from '@uirouter/core';
-import { input } from 'reactivestates';
-import { takeUntil } from 'rxjs/operators';
+import { WorkPackageQueryStateService } from 'core-app/features/work-packages/routing/wp-view-base/view-services/wp-view-base.service';
+import { IsolatedQuerySpace } from 'core-app/features/work-packages/directives/query-space/isolated-query-space';
+import { QueryResource } from 'core-app/features/hal/resources/query-resource';
+import { WorkPackageCollectionResource } from 'core-app/features/hal/resources/wp-collection-resource';
 
-export const bimListViewIdentifier = 'list';
-export const bimTableViewIdentifier = 'table';
-export const bimSplitViewCardsIdentifier = 'splitCards';
-export const bimSplitViewListIdentifier = 'splitList';
+export const bimCardsViewIdentifier = 'cards';
 export const bimViewerViewIdentifier = 'viewer';
+export const bimSplitViewTableIdentifier = 'splitTable';
+export const bimSplitViewCardsIdentifier = 'splitCards';
+export const bimTableViewIdentifier = 'table';
 
-export type BimViewState = 'list'|'viewer'|'splitList'|'splitCards'|'table';
+export type BimViewState = 'cards'|'viewer'|'splitTable'|'splitCards'|'table';
 
 @Injectable()
-export class BimViewService implements OnDestroy {
-  private _state = input<BimViewState>();
-
-  public text:any = {
-    list: this.I18n.t('js.views.card'),
+export class BimViewService extends WorkPackageQueryStateService<BimViewState> {
+  public text:{ [key:string]:string } = {
+    cards: this.I18n.t('js.views.card'),
     viewer: this.I18n.t('js.ifc_models.views.viewer'),
-    splitList: this.I18n.t('js.ifc_models.views.split'),
+    splitTable: this.I18n.t('js.ifc_models.views.split'),
     splitCards: this.I18n.t('js.ifc_models.views.split_cards'),
     table: this.I18n.t('js.views.list'),
   };
 
-  public icon:any = {
-    list: 'icon-view-card',
+  public icon:{ [key:string]:string } = {
+    cards: 'icon-view-card',
     viewer: 'icon-view-model',
-    splitList: 'icon-view-split-viewer-table',
+    splitTable: 'icon-view-split-viewer-table',
     splitCards: 'icon-view-split2',
     table: 'icon-view-list',
   };
 
-  private transitionFn:Function;
-
-  constructor(readonly I18n:I18nService,
-    readonly transitions:TransitionService,
-    readonly state:StateService) {
-    this.detectView();
-
-    this.transitionFn = this.transitions.onSuccess({}, (transition) => {
-      this.detectView();
-    });
+  constructor(
+    private readonly I18n:I18nService,
+    protected readonly querySpace:IsolatedQuerySpace,
+  ) {
+    super(querySpace);
   }
 
-  get view$():Observable<BimViewState> {
-    return this._state.values$();
+  hasChanged(query:QueryResource):boolean {
+    return this.current !== query.displayRepresentation;
   }
 
-  public observeUntil(unsubscribe:Observable<any>) {
-    return this.view$.pipe(takeUntil(unsubscribe));
+  applyToQuery(query:QueryResource):boolean {
+    // eslint-disable-next-line no-param-reassign
+    query.displayRepresentation = this.current;
+    return true;
   }
 
-  get current():BimViewState {
-    return this._state.getValueOr(bimSplitViewCardsIdentifier);
-  }
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  public valueFromQuery(query:QueryResource, results:WorkPackageCollectionResource):BimViewState|undefined {
+    const dr = query.displayRepresentation;
 
-  public currentViewerState():BimViewState {
-    if (this.state.includes('bim.partitioned.list')) {
-      return this.state.params?.cards
-        ? bimListViewIdentifier
-        : bimTableViewIdentifier;
-    } if (this.state.includes('bim.**.model')) {
-      return bimViewerViewIdentifier;
-    } if (this.state.includes('bim.partitioned.show')) {
-      return this.state.params?.cards || this.state.params?.cards == null
-        ? bimListViewIdentifier
-        : bimTableViewIdentifier;
+    if (dr && BimViewService.isBimViewState(dr)) {
+      return <BimViewState>dr;
     }
-    return this.state.params?.cards || this.state.params?.cards == null
-      ? bimSplitViewCardsIdentifier
-      : bimSplitViewListIdentifier;
+
+    // TODO: do we need to return that default? It could hide errors
+    return bimSplitViewCardsIdentifier;
   }
 
-  private detectView() {
-    this._state.putValue(this.currentViewerState());
+  public static isBimViewState(str:string):boolean {
+    return str === bimCardsViewIdentifier
+      || str === bimTableViewIdentifier
+      || str === bimViewerViewIdentifier
+      || str === bimSplitViewCardsIdentifier
+      || str === bimSplitViewTableIdentifier;
   }
 
-  ngOnDestroy() {
-    this.transitionFn();
+  public currentViewerState():BimViewState|undefined {
+    return this.current;
   }
 }

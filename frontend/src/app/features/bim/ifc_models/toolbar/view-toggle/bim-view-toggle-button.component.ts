@@ -35,7 +35,7 @@ import { BimViewService } from 'core-app/features/bim/ifc_models/pages/viewer/bi
     <ng-container *ngIf="(view$ | async) as current">
       <button class="button"
               id="bim-view-toggle-button"
-              bimViewDropdown>
+              opBimViewDropdown>
         <op-icon icon-classes="button--icon {{bimView.icon[current]}}"></op-icon>
         <span class="button--text"
               aria-hidden="true"
@@ -46,12 +46,10 @@ import { BimViewService } from 'core-app/features/bim/ifc_models/pages/viewer/bi
     </ng-container>
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  selector: 'bim-view-toggle-button',
+  selector: 'op-bim-view-toggle-button',
 })
 export class BimViewToggleButtonComponent {
-  view$ = this.bimView.view$;
+  view$ = this.bimView.live$();
 
-  constructor(readonly I18n:I18nService,
-    readonly bimView:BimViewService) {
-  }
+  constructor(readonly I18n:I18nService, readonly bimView:BimViewService) { }
 }
