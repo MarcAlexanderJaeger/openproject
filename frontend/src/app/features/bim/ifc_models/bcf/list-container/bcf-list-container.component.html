@@ -1,10 +1,10 @@
 <div class="op-bcf-list-container--result-overlay"
-     *ngIf="(showResultOverlay$ | async) && (showTable$ | async)"></div>
+     *ngIf="(showResultOverlay$ | async) && showTableView"></div>
 
 <!-- TABLE representation of the WP -->
 <div class="op-bcf-list-container--work-packages-split-view--tabletimeline-container"
      [ngClass]="{ '_with-resizer': showResizerInCardView() }"
-     *ngIf="tableInformationLoaded && (showTable$ | async)">
+     *ngIf="tableInformationLoaded && showTableView">
   <wp-resizer elementClass="work-packages-partitioned-page--content-right"
               localStorageKey="openProject-splitViewFlexBasis">
   </wp-resizer>
@@ -18,7 +18,7 @@
 </div>
 
 <!-- GRID representation of the WP -->
-<div *ngIf="(showTable$ | async) === false"
+<div *ngIf="showTableView === false"
      class="op-bcf-list-container--work-packages--card-view-container"
      [ngClass]="{ '_with-resizer': showResizerInCardView() }">
   <wp-grid [configuration]="wpTableConfiguration"

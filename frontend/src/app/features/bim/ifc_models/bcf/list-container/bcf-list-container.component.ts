@@ -16,12 +16,12 @@ import { InjectField } from 'core-app/shared/helpers/angular/inject-field.decora
 import { IfcModelsDataService } from 'core-app/features/bim/ifc_models/pages/viewer/ifc-models-data.service';
 import { WorkPackageViewColumnsService } from 'core-app/features/work-packages/routing/wp-view-base/view-services/wp-view-columns.service';
 import { UIRouterGlobals } from '@uirouter/core';
-import { map } from 'rxjs/operators';
 import { States } from 'core-app/core/states/states.service';
 import { BcfApiService } from 'core-app/features/bim/bcf/api/bcf-api.service';
 import { splitViewRoute } from 'core-app/features/work-packages/routing/split-view-routes.helper';
 import { ViewerBridgeService } from 'core-app/features/bim/bcf/bcf-viewer-bridge/viewer-bridge.service';
 import { Observable } from 'rxjs';
+import { UntilDestroyedMixin } from 'core-app/shared/helpers/angular/until-destroyed.mixin';
 
 @Component({
   templateUrl: './bcf-list-container.component.html',
@@ -33,7 +33,7 @@ import { Observable } from 'rxjs';
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class BcfListContainerComponent extends WorkPackageListViewComponent implements OnInit {
+export class BcfListContainerComponent extends WorkPackageListViewComponent implements UntilDestroyedMixin, OnInit {
   @InjectField() bimView:BimViewService;
 
   @InjectField() ifcModelsService:IfcModelsDataService;
@@ -61,10 +61,19 @@ export class BcfListContainerComponent extends WorkPackageListViewComponent impl
   ngOnInit():void {
     super.ngOnInit();
 
-    this.showTable$ = this.bimView.live$()
+    // this.showTable$ = this.bimView.live$()
+    //   .pipe(
+    //     map((value) => value === bimTableViewIdentifier || value === bimSplitViewTableIdentifier),
+    //     tap(x => { console.log(x); }),
+    //   );
+
+    this.bimView.live$()
       .pipe(
-        map((value) => value === bimTableViewIdentifier || value === bimSplitViewTableIdentifier),
-      );
+        this.untilDestroyed(),
+      )
+      .subscribe((value) => {
+        this.showTableView = value === bimTableViewIdentifier || value === bimSplitViewTableIdentifier;
+      });
   }
 
   public showResizerInCardView():boolean {

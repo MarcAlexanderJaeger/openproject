@@ -37,11 +37,9 @@ import { InjectField } from 'core-app/shared/helpers/angular/inject-field.decora
 import { ViewpointsService } from 'core-app/features/bim/bcf/helper/viewpoints.service';
 import { CurrentProjectService } from 'core-app/core/current-project/current-project.service';
 import { HttpClient } from '@angular/common/http';
-import idFromLink from 'core-app/features/hal/helpers/id-from-link';
 import { IfcProjectDefinition } from 'core-app/features/bim/ifc_models/pages/viewer/ifc-models-data.service';
 import { BIMViewer } from '@xeokit/xeokit-bim-viewer/dist/xeokit-bim-viewer.es';
 import { BcfViewpointData, CreateBcfViewpointData } from 'core-app/features/bim/bcf/api/bcf-api.model';
-import { HalResource } from 'core-app/features/hal/resources/hal-resource';
 
 export interface XeokitElements {
   canvasElement:HTMLElement;
@@ -88,7 +86,7 @@ type Controller = {
 /**
  * Wrapping type from xeokit module. Can be removed after we get a real type package.
  */
-type BimViewer = Controller&{
+type XeokitBimViewer = Controller&{
   loadProject:(projectId:string) => void,
   saveBCFViewpoint:(options:BCFCreationOptions) => CreateBcfViewpointData,
   loadBCFViewpoint:(bcfViewpoint:BcfViewpointData, options:BCFLoadOptions) => void,
@@ -104,7 +102,7 @@ export class IFCViewerService extends ViewerBridgeService {
 
   public inspectorVisible$ = new BehaviorSubject<boolean>(false);
 
-  private bimViewer:BimViewer|undefined;
+  private xeokitViewer:XeokitBimViewer|undefined;
 
   @InjectField() pathHelper:PathHelperService;
 
@@ -123,7 +121,7 @@ export class IFCViewerService extends ViewerBridgeService {
   public newViewer(elements:XeokitElements, projects:IfcProjectDefinition[]):void {
     const server = new XeokitServer(this.pathHelper);
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-    const viewerUI = new BIMViewer(server, elements) as BimViewer;
+    const viewerUI = new BIMViewer(server, elements) as XeokitBimViewer;
 
     viewerUI.on('modelLoaded', () => this.viewerVisible$.next(true));
 
@@ -182,12 +180,12 @@ export class IFCViewerService extends ViewerBridgeService {
     this.viewer = undefined;
   }
 
-  public get viewer():BimViewer|undefined {
-    return this.bimViewer;
+  public get viewer():XeokitBimViewer|undefined {
+    return this.xeokitViewer;
   }
 
-  public set viewer(viewer:BimViewer|undefined) {
-    this.bimViewer = viewer;
+  public set viewer(viewer:XeokitBimViewer|undefined) {
+    this.xeokitViewer = viewer;
   }
 
   public setKeyboardEnabled(val:boolean):void {
@@ -209,29 +207,10 @@ export class IFCViewerService extends ViewerBridgeService {
   }
 
   public showViewpoint(workPackage:WorkPackageResource, index:number):void {
-    // Avoid reload the app when there is a place to show the viewer
-    // ('bim.partitioned.split')
-    if (this.routeWithViewer) {
-      if (this.viewer) {
-        const opts:BCFLoadOptions = { updateCompositeObjects: true, reverseClippingPlanes: true };
-        this.viewpointsService
-          .getViewPoint$(workPackage, index)
-          .subscribe((viewpoint) => this.viewer?.loadBCFViewpoint(viewpoint, opts));
-      }
-    } else {
-      if (!workPackage.id) {
-        return;
-      }
-
-      // Reload the whole app to get the correct menus and GON data
-      // and redirect to a route with a place to show viewer
-      // ('bim.partitioned.split')
-      window.location.href = this.pathHelper.bimDetailsPath(
-        idFromLink((workPackage.project as HalResource).href),
-        workPackage.id,
-        index,
-      );
-    }
+    const opts:BCFLoadOptions = { updateCompositeObjects: true, reverseClippingPlanes: true };
+    this.viewpointsService
+      .getViewPoint$(workPackage, index)
+      .subscribe((viewpoint) => this.viewer?.loadBCFViewpoint(viewpoint, opts));
   }
 
   public viewerVisible():boolean {

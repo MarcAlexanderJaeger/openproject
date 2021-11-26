@@ -1,3 +1,31 @@
+// -- copyright
+// OpenProject is an open source project management software.
+// Copyright (C) 2012-2021 the OpenProject GmbH
+//
+// This program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public License version 3.
+//
+// OpenProject is a fork of ChiliProject, which is a fork of Redmine. The copyright follows:
+// Copyright (C) 2006-2013 Jean-Philippe Lang
+// Copyright (C) 2010-2013 the ChiliProject Team
+//
+// This program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either version 2
+// of the License, or (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+//
+// See COPYRIGHT and LICENSE files for more details.
+//++
+
 import {
   AfterViewInit,
   ChangeDetectionStrategy,
@@ -22,6 +50,13 @@ import { BcfAuthorizationService } from 'core-app/features/bim/bcf/api/bcf-autho
 import { ViewpointsService } from 'core-app/features/bim/bcf/helper/viewpoints.service';
 import { BcfViewpointItem } from 'core-app/features/bim/bcf/api/viewpoints/bcf-viewpoint-item.interface';
 import { APIV3Service } from 'core-app/core/apiv3/api-v3.service';
+import {
+  bimCardsViewIdentifier,
+  bimSplitViewCardsIdentifier,
+  bimSplitViewTableIdentifier,
+  bimTableViewIdentifier,
+  BimViewService,
+} from 'core-app/features/bim/ifc_models/pages/viewer/bim-view.service';
 
 @Component({
   templateUrl: './bcf-wp-attribute-group.component.html',
@@ -120,6 +155,7 @@ export class BcfWpAttributeGroupComponent extends UntilDestroyedMixin implements
     readonly apiV3Service:APIV3Service,
     readonly wpCreate:WorkPackageCreateService,
     readonly toastService:ToastService,
+    readonly bimViewer:BimViewService,
     readonly cdRef:ChangeDetectorRef,
     readonly I18n:I18nService,
     readonly viewpointsService:ViewpointsService) {
@@ -131,7 +167,7 @@ export class BcfWpAttributeGroupComponent extends UntilDestroyedMixin implements
     this.observeChanges();
   }
 
-  ngOnInit() {
+  ngOnInit():void {
     this.viewerBridge.viewerVisible$.subscribe((visible:boolean) => {
       if (visible) {
         this.viewerVisible = true;
@@ -171,13 +207,23 @@ export class BcfWpAttributeGroupComponent extends UntilDestroyedMixin implements
     this.cdRef.detectChanges();
   }
 
-  refreshViewpoints(viewpoints:HalLink[]) {
+  refreshViewpoints(viewpoints:HalLink[]):void {
     this.viewpoints = viewpoints.map((el:HalLink) => ({ href: el.href, snapshotURL: `${el.href}/snapshot` }));
 
     this.setViewpointsOnGallery(this.viewpoints);
   }
 
-  protected showViewpoint(workPackage:WorkPackageResource, index:number) {
+  protected showViewpoint(workPackage:WorkPackageResource, index:number):void {
+    switch (this.bimViewer.currentViewerState()) {
+      case bimTableViewIdentifier:
+        this.bimViewer.update(bimSplitViewTableIdentifier);
+        break;
+      case bimCardsViewIdentifier:
+        this.bimViewer.update(bimSplitViewCardsIdentifier);
+        break;
+      default:
+    }
+
     this.viewerBridge.showViewpoint(workPackage, index);
   }
 
@@ -188,7 +234,7 @@ export class BcfWpAttributeGroupComponent extends UntilDestroyedMixin implements
 
     this.viewpointsService
       .deleteViewPoint$(workPackage, index)
-      .subscribe((data) => {
+      .subscribe(() => {
         this.toastService.addSuccess(this.text.notice_successful_delete);
         this.gallery.preview.close();
       });
@@ -197,7 +243,7 @@ export class BcfWpAttributeGroupComponent extends UntilDestroyedMixin implements
   public saveViewpoint(workPackage:WorkPackageResource) {
     this.viewpointsService
       .saveViewpoint$(workPackage)
-      .subscribe((viewpoint) => {
+      .subscribe(() => {
         this.toastService.addSuccess(this.text.notice_successful_create);
         this.showIndex = this.viewpoints.length;
       });
@@ -209,7 +255,7 @@ export class BcfWpAttributeGroupComponent extends UntilDestroyedMixin implements
       this.showViewpoint(workPackage, index);
       this.showIndex = index;
       this.selectViewpointInGallery();
-      this.state.go('.', { ...this.state.params, viewpoint: undefined }, { reload: false });
+      void this.state.go('.', { ...this.state.params, viewpoint: undefined }, { reload: false });
     }
   }
 

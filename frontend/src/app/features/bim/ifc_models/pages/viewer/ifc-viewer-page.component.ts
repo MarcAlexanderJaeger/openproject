@@ -12,7 +12,7 @@ import {
 import { WorkPackageFilterButtonComponent } from 'core-app/features/work-packages/components/wp-buttons/wp-filter-button/wp-filter-button.component';
 import { ZenModeButtonComponent } from 'core-app/features/work-packages/components/wp-buttons/zen-mode-toggle-button/zen-mode-toggle-button.component';
 import {
-  bimSplitViewCardsIdentifier,
+  bimSplitViewCardsIdentifier, bimSplitViewTableIdentifier,
   bimViewerViewIdentifier,
   BimViewService,
   BimViewState,
@@ -93,17 +93,8 @@ export class IFCViewerPageComponent extends PartitionedQuerySpacePageComponent i
       // Hide 'Manage models' toolbar button on plugin environment (ie: Revit)
       show: ():boolean => this.viewerBridgeService.shouldShowViewer
         && this.ifcData.allowed('manage_ifc_models'),
-
     },
   ];
-
-  // get newRoute() {
-  //   // Open new work packages in full view when there
-  //   // is no viewer (ie: Revit)
-  //   return this.viewerBridgeService.shouldShowViewer
-  //     ? this.state.current.data.newRoute
-  //     : 'bim.partitioned.new';
-  // }
 
   constructor(readonly ifcData:IfcModelsDataService,
     readonly bimView:BimViewService,
@@ -115,29 +106,34 @@ export class IFCViewerPageComponent extends PartitionedQuerySpacePageComponent i
   ngOnInit():void {
     super.ngOnInit();
 
-    // TODO: find better spot to modify columns
-    // void this.wpTableColumns.onReady()
-    //   .then(() => this.wpTableColumns.addColumn('bcfThumbnail', 2));
-
     this.setupChangeObserver(this.bimView);
+
+    // Add bcf thumbnail to wp table per default, once the columns are available
+    this.wpTableColumns.querySpace.available.columns.values$().subscribe(() => {
+      this.wpTableColumns.addColumn('bcfThumbnail', 2);
+    });
 
     this.querySpace.query.values$()
       .subscribe((query) => {
         const dr = query.displayRepresentation || bimSplitViewCardsIdentifier;
         this.currentPartition = IFCViewerPageComponent.derivePartition(<BimViewState>dr);
         this.filterAllowed = dr !== bimViewerViewIdentifier;
+
+        switch (dr) {
+          case bimSplitViewCardsIdentifier:
+          case bimSplitViewTableIdentifier:
+            this.newRoute$.next('bim.partitioned.list.new');
+            break;
+          default:
+            this.newRoute$.next('bim.partitioned.new');
+        }
+
         this.cdRef.detectChanges();
       });
-
-
-    // // Keep the new route up to date depending on where we move to
-    // this.transitionUnsubscribeFn = this.transition.onSuccess({}, () => {
-    //   this.newRoute$.next(this.newRoute);
-    // });
   }
 
   /**
-   * Initialize the BimViewService when the component is refreshed
+   * Initialize the BimViewService when the query of the isolated space is loaded
    */
   public loadQuery(firstPage = false):Promise<QueryResource> {
     return super.loadQuery(firstPage)
